@@ -33,27 +33,30 @@ let getPage = async (url) => {
     let html = '';
 
     try {
-        
+
         const opts = {
             headless: true,
             args: [
-              "--no-sandbox",
-              "--disable-setuid-sandbox",
-              "--unhandled-rejections=strict",
-              "--disable-dev-shm-usage",
-              "--fast-start",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--unhandled-rejections=strict",
+                "--disable-dev-shm-usage",
+                "--fast-start",
             ],
-          };
+        };
 
         const browser = await puppeteer.launch(opts);
-        const page = await browser.newPage();        
+        const page = await browser.newPage();
         await page.goto(url);
-        
-        const allResultsSelector = 'meta[name="twitter:card"]';
-        await page.waitForSelector(allResultsSelector);
+
+        // root doesnt have twitter card
+        if (url != 'https://queropaonaporta.com.br/') {
+            const allResultsSelector = 'meta[name="twitter:card"]';
+            await page.waitForSelector(allResultsSelector);
+        }
 
         html = await page.content();
-        
+
         await browser.close();
 
     } catch (e) {
