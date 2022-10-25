@@ -49,7 +49,7 @@ let getPage = async (url) => {
         const page = await browser.newPage();        
         await page.goto(url);
         html = await page.content();
-        const allResultsSelector = 'meta[data-react-helmet="true"]';
+        const allResultsSelector = 'meta[name="twitter:card"]';
         await page.waitForSelector(allResultsSelector);
         await browser.close();
 
