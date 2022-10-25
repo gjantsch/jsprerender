@@ -60,7 +60,7 @@ app.get('*', async (req, res) => {
 
         res.status(404)
             .setHeader("Content-Type", "text/plain")
-            .send('Invalid URL');
+            .send(`Invalid URL ${pageURL}`);
 
         return;
     }
