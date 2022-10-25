@@ -105,7 +105,7 @@ app.get('*', async (req, res) => {
 // h - hour
 // d - day
 // w - week
-const cacheTTL = '1d';
+const cacheTTL = '2d';
 const cacheDirectory = './cache';
 const port = 3001;
 
