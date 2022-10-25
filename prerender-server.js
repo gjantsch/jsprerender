@@ -49,6 +49,8 @@ let getPage = async (url) => {
         const page = await browser.newPage();        
         await page.goto(url);
         html = await page.content();
+        const allResultsSelector = 'meta[data-react-helmet="true"]';
+        await page.waitForSelector(allResultsSelector);
         await browser.close();
 
     } catch (e) {
