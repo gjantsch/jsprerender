@@ -33,12 +33,22 @@ let getPage = async (url) => {
     let html = '';
 
     try {
+        
+        const opts = {
+            headless: true,
+            args: [
+              "--no-sandbox",
+              "--disable-setuid-sandbox",
+              "--unhandled-rejections=strict",
+              "--disable-dev-shm-usage",
+              "--fast-start",
+            ],
+          };
 
-        const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-        const page = await browser.newPage();
+        const browser = await puppeteer.launch(opts);
+        const page = await browser.newPage();        
         await page.goto(url);
         html = await page.content();
-
         await browser.close();
 
     } catch (e) {
@@ -81,8 +91,10 @@ app.get('*', async (req, res) => {
         html = fs.readFileSync(fileName);
     } else {
         html = await getPage(pageURL);
-        console.log(`Writing to cache ${fileName}`);
-        fs.writeFileSync(fileName, html);
+        if (html.length >= minContentSize) {
+            console.log(`Writing to cache ${fileName}`);
+            fs.writeFileSync(fileName, html);
+        }
     }
 
     // remove unwanted endings
@@ -107,6 +119,7 @@ app.get('*', async (req, res) => {
 // w - week
 const cacheTTL = '2d';
 const cacheDirectory = './cache';
+const minContentSize = 1000;
 const port = 3001;
 
 app.listen(port, () => {
