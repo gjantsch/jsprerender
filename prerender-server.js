@@ -59,7 +59,7 @@ app.get('*', async (req, res) => {
     if (pageURL == undefined || !pageURL || pageURL.indexOf('http') == -1) {
 
         res.status(404)
-            .setHeader("Content-Type", "text/html;charset=UTF-8")
+            .setHeader("Content-Type", "text/plain")
             .send('Invalid URL');
 
         return;
@@ -94,9 +94,7 @@ app.get('*', async (req, res) => {
 
     console.log(`Sending page with ${html.length} bytes.`);
 
-    res.status(200)
-        .setHeader("Content-Type", "text/html;charset=UTF-8")
-        .send(html);
+    res.status(200).setHeader("Content-Type", "text/html;charset=UTF-8").send(html);
 
     console.log('Page sent!');
 
