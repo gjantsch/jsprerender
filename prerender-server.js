@@ -24,6 +24,13 @@ const fileOlderThan = (filename, duration) => {
     return new Date() - parsed > fileDate
 }
 
+const logger = (message) => {
+    
+    const time = new Date().toISOString();
+    console.log(`[${time}] ${message}`);
+
+}
+
 /**
  * Get Rendered Page
  * @param {*} url 
@@ -60,7 +67,7 @@ let getPage = async (url) => {
         await browser.close();
 
     } catch (e) {
-        console.log(e);
+        logger(e);
         return 'Error'
     }
 
@@ -83,7 +90,7 @@ app.get('*', async (req, res) => {
         return;
     }
 
-    console.log(`Requested page: ${pageURL}`);
+    logger(`Requested page: ${pageURL}`);
 
     const fileHash = crypto
         .createHash('md5')
@@ -95,12 +102,12 @@ app.get('*', async (req, res) => {
     let html = '';
 
     if (fs.existsSync(fileName) && !fileOlderThan(fileName, cacheTTL)) {
-        console.log(`Reading from cache ${fileName}`);
+        logger(`Reading from cache ${fileName}`);
         html = fs.readFileSync(fileName);
     } else {
         html = await getPage(pageURL);
         if (html.length >= minContentSize) {
-            console.log(`Writing to cache ${fileName}`);
+            logger(`Writing to cache ${fileName}`);
             fs.writeFileSync(fileName, html);
         }
     }
@@ -112,11 +119,11 @@ app.get('*', async (req, res) => {
         .replace(/\n/g, "")
         .trim();
 
-    console.log(`Sending page with ${html.length} bytes.`);
+    logger(`Sending page with ${html.length} bytes.`);
 
     res.status(200).setHeader("Content-Type", "text/html;charset=UTF-8").send(html);
 
-    console.log('Page sent!');
+    logger('Page sent!');
 
 });
 
@@ -130,6 +137,8 @@ const cacheDirectory = './cache';
 const minContentSize = 1000;
 const port = 3001;
 
+app.setMaxListeners(50);
+
 app.listen(port, () => {
 
     // makes sure that cache directory exists
@@ -137,6 +146,6 @@ app.listen(port, () => {
         fs.mkdirSync(cacheDirectory);
     }
 
-    console.log(`Pre Render Server is running at port ${port}`);
+    logger(`Pre Render Server is running at port ${port}`);
 
 });
