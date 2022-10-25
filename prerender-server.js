@@ -48,9 +48,12 @@ let getPage = async (url) => {
         const browser = await puppeteer.launch(opts);
         const page = await browser.newPage();        
         await page.goto(url);
-        html = await page.content();
+        
         const allResultsSelector = 'meta[name="twitter:card"]';
         await page.waitForSelector(allResultsSelector);
+
+        html = await page.content();
+        
         await browser.close();
 
     } catch (e) {
