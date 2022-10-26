@@ -52,8 +52,9 @@ let getPage = async (url) => {
             ],
         };
 
+        const browser = await puppeteer.launch(opts);
+
         try {
-            const browser = await puppeteer.launch(opts);
             const page = await browser.newPage();
             await page.goto(url);
 
