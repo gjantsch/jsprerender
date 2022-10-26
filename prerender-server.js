@@ -25,7 +25,7 @@ const fileOlderThan = (filename, duration) => {
 }
 
 const logger = (message) => {
-    
+
     const time = new Date().toISOString();
     console.log(`[${time}] ${message}`);
 
@@ -52,19 +52,24 @@ let getPage = async (url) => {
             ],
         };
 
-        const browser = await puppeteer.launch(opts);
-        const page = await browser.newPage();
-        await page.goto(url);
+        try {
+            const browser = await puppeteer.launch(opts);
+            const page = await browser.newPage();
+            await page.goto(url);
 
-        // root doesnt have twitter card
-        if (url != 'https://queropaonaporta.com.br/') {
-            const allResultsSelector = 'meta[name="twitter:card"]';
-            await page.waitForSelector(allResultsSelector);
+            // root doesnt have twitter card
+            if (url != 'https://queropaonaporta.com.br/') {
+                const allResultsSelector = 'meta[name="twitter:card"]';
+                await page.waitForSelector(allResultsSelector);
+            }
+
+            html = await page.content();
+
+        } catch (e) {
+            console.log(e);
+        } finally {
+            await browser.close();
         }
-
-        html = await page.content();
-
-        await browser.close();
 
     } catch (e) {
         logger(e);
