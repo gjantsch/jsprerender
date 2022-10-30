@@ -58,10 +58,19 @@ let getPage = async (url) => {
             const page = await browser.newPage();
             await page.goto(url);
 
-            // root doesnt have twitter card
-            if (url != 'https://queropaonaporta.com.br/') {
-                const allResultsSelector = 'meta[name="twitter:card"]';
-                await page.waitForSelector(allResultsSelector);
+            if (config.pages.length > 0) {
+
+                const pageSelector = config.pages.find((cfg) => cfg.url === url);
+
+                if (pageSelector) {
+                    logger(`Using Page Selector ${pageSelector.waitForSelector}`);
+                    if (pageSelector.waitForSelector !== null) {
+                        await page.waitForSelector(pageSelector.waitForSelector);
+                    }
+                } else if (defaultSelector) {
+                    logger(`Using Default Selector ${defaultSelector.waitForSelector}`);
+                    await page.waitForSelector(defaultSelector.waitForSelector);
+                }
             }
 
             html = await page.content();
@@ -103,16 +112,16 @@ app.get('*', async (req, res) => {
         .update(pageURL)
         .digest('hex');
 
-    const fileName = `${cacheDirectory}/${fileHash}`;
+    const fileName = `${config.cache.directory}/${fileHash}`;
 
     let html = '';
 
-    if (fs.existsSync(fileName) && !fileOlderThan(fileName, cacheTTL)) {
+    if (fs.existsSync(fileName) && !fileOlderThan(fileName, config.cache.ttl)) {
         logger(`Reading from cache ${fileName}`);
         html = fs.readFileSync(fileName);
     } else {
         html = await getPage(pageURL);
-        if (html.length >= minContentSize) {
+        if (html.length >= config.cache.minContentSize) {
             logger(`Writing to cache ${fileName}`);
             fs.writeFileSync(fileName, html);
         }
@@ -133,25 +142,56 @@ app.get('*', async (req, res) => {
 
 });
 
-// https://www.npmjs.com/package/duration-js
-// m - minute
-// h - hour
-// d - day
-// w - week
-const cacheTTL = '2d';
-const cacheDirectory = './cache';
-const minContentSize = 1000;
-const port = 3001;
+/**
+ * Default setup
+ */
+let config = {
+    "cache": {
+        "ttl": "2d",
+        "directory": "./cache",
+        "minContentSize": 1000
+    },
+    "server": {
+        "port": 3001,
+        "maxListeners": 50
+    },
+    "pages": []
+};
 
-app.setMaxListeners(50);
+if (fs.existsSync('./config.json')) {
+    const loadedConfig = JSON.parse(fs.readFileSync('./config.json'));
+    config = { ...config, ...loadedConfig };
+}
 
-app.listen(port, () => {
+if (process.argv.find((arg) => arg === '--help')) {
+    console.log(`
+    Pre Render Server 
+    =================
+    Cache TTL use:
+        https://www.npmjs.com/package/duration-js
+        m - minute
+        h - hour
+        d - day
+        w - week
+
+    `);
+    return 0; 
+}
+
+app.setMaxListeners(config.server.maxListeners);
+
+let defaultSelector = null;
+if (config.pages.length > 0) {
+    defaultSelector = config.pages.find((cfg) => cfg.url ==='*' );
+}
+
+app.listen(config.server.port, () => {
 
     // makes sure that cache directory exists
-    if (!fs.existsSync(cacheDirectory)) {
-        fs.mkdirSync(cacheDirectory);
+    if (!fs.existsSync(config.cache.directory)) {
+        fs.mkdirSync(config.cache.directory);
     }
 
-    logger(`Pre Render Server is running at port ${port}`);
+    logger(`Pre Render Server is running at port ${config.server.port}`);
 
 });
