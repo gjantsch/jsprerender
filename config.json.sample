@@ -1,0 +1,21 @@
+{
+    "server": {
+        "port": 3001,
+        "maxListeners": 50
+    },
+    "cache": {
+        "ttl": "2d",
+        "directory": "./cache",
+        "minContentSize": 1000
+    },
+    "pages": [
+        {
+            "url": "*",
+            "waitForSelector": "meta[name=\"twitter:card\"]"
+        },
+        {
+            "url": "https://homeofmysite.com.br/",
+            "waitForSelector": null
+        }
+    ]
+}
