@@ -24,6 +24,10 @@ const fileOlderThan = (filename, duration) => {
     return new Date() - parsed > fileDate
 }
 
+/**
+ * Console logger
+ * @param {*} message 
+ */
 const logger = (message) => {
 
     const time = new Date().toISOString();
@@ -60,7 +64,19 @@ let getPage = async (url) => {
 
             if (config.pages.length > 0) {
 
-                const pageSelector = config.pages.find((cfg) => cfg.url === url);
+                const pageSelector = config.pages.find((cfg) => {
+                    if (cfg.url.substr(0, 1) === '/') {
+                        // is a regular expression)
+                        logger(`Using ER ${cfg.url}`)
+                        const parts = cfg.url.split('/');
+                        const pattern = parts[1] ? parts[1] : '.*';
+                        const flags = parts[2] ? parts[2] : 'gm';
+                        const er = new RegExp(pattern, flags);
+                        const result = er.exec(url);
+                        return result !== null;
+                    } 
+                    return cfg.url === url
+                });
 
                 if (pageSelector) {
                     logger(`Using Page Selector ${pageSelector.waitForSelector}`);
@@ -121,7 +137,7 @@ app.get('*', async (req, res) => {
         html = fs.readFileSync(fileName);
     } else {
         html = await getPage(pageURL);
-        if (html.length >= config.cache.minContentSize) {
+        if (html.length >= config.cache.minContentSize && pageURL.indexOf('debug') === -1) {
             logger(`Writing to cache ${fileName}`);
             fs.writeFileSync(fileName, html);
         }
