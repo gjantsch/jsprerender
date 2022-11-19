@@ -60,20 +60,30 @@ let getPage = async (url) => {
 
         try {
             const page = await browser.newPage();
+            const isDebug = url.indexOf('debug') !== -1;
+
+            // debug param must be stripped of the URL
+            if (isDebug) {
+                url = url.replace('?debug', '');
+                url = url.replace('&debug', '');
+                url = url.replace('debug'), '';
+            }
+
             await page.goto(url);
 
             if (config.pages.length > 0) {
 
                 const pageSelector = config.pages.find((cfg) => {
-                    if (cfg.url.substr(0, 1) === '/') {
+                    if (cfg.url.substr(0, 3) === 'ER:') {
                         // is a regular expression)
-                        logger(`Using ER ${cfg.url}`)
-                        const parts = cfg.url.split('/');
-                        const pattern = parts[1] ? parts[1] : '.*';
-                        const flags = parts[2] ? parts[2] : 'gm';
+                        logger(`Checking ER ${cfg.url}`)
+                        const pattern = cfg.url.substr(3);
+                        const flags = 'gmi';
                         const er = new RegExp(pattern, flags);
                         const result = er.exec(url);
-                        return result !== null;
+                        const found = result !== null;
+                        logger(found ? 'ER Matched' : 'ER Failed');
+                        return found;
                     } 
                     return cfg.url === url
                 });

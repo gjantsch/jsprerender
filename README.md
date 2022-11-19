@@ -33,7 +33,7 @@ Cache TTL uses [DurationJS](https://www.npmjs.com/package/duration-js) conventio
 - d: day
 - w: week
 
-```page.url``` can be absolute pages urls but also accepts javascript Regular Expressions, they must be written as string enclosed between slashes like ```'/.*mypattern.*/gm'```. The ```*```char means "the default selector".
+```page.url``` can be absolute pages urls but also accepts javascript Regular Expressions, they must start with ```ER:``` like ```'ER:.*mypattern.*'```. The lonely ```*```char on ```page.url``` means "the default selector".
 
 ```waitForSelector``` is a valid CSS3 selector that refers to a page element that will signal the browser that your page is ready to be cached. The ```null``` value is used to indicate: "don't wait for anything".
 
