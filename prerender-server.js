@@ -21,7 +21,7 @@ const fileOlderThan = (filename, duration) => {
     }
     const fileDate = new Date(util.inspect(stats.mtime))
     const parsed = Duration.parse(duration)
-    return new Date() - parsed > fileDate
+    return new Date() - fileDate > parsed
 }
 
 /**
