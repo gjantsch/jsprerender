@@ -147,6 +147,13 @@ app.get('*', async (req, res) => {
         html = fs.readFileSync(fileName);
     } else {
         html = await getPage(pageURL);
+
+        if (html === 'Error') {
+            logger(`Render failed for ${pageURL}`);
+            res.status(502).setHeader("Content-Type", "text/plain").send("Render failed");
+            return;
+        }
+
         if (html.length >= config.cache.minContentSize && pageURL.indexOf('debug') === -1) {
             logger(`Writing to cache ${fileName}`);
             fs.writeFileSync(fileName, html);
