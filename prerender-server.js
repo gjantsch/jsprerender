@@ -98,7 +98,7 @@ let getPage = async (url) => {
             if (isDebug) {
                 url = url.replace('?debug', '');
                 url = url.replace('&debug', '');
-                url = url.replace('debug'), '';
+                url = url.replace('debug', '');
             }
 
             await page.goto(url);
