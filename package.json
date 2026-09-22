@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Headless-Chrome prerender server — renders JS SPAs for crawlers and bots",
   "main": "prerender-server.js",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "start": "node prerender-server.js",
     "test": "node --test test/"
