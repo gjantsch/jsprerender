@@ -140,6 +140,10 @@ let getPage = async (url) => {
 /**
  * main loop
  */
+app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
 app.get('/{*path}', async (req, res) => {
     const pageURL = req.query.url;
 
