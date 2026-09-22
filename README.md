@@ -1,13 +1,35 @@
 # jsprerender
 A prerender server for ReactJS, VueJS, Angular pages.
 
-You can setup the rendering behaviour on config.json: 
+## Requirements
 
+- Node.js >= 24
+- Chromium (included automatically via Puppeteer)
+
+## Getting started
+
+```bash
+npm install
+npm start
 ```
+
+Or with Docker:
+
+```bash
+docker build -t jsprerender .
+docker run -p 3001:3001 jsprerender
+```
+
+## Configuration
+
+Create a `config.json` in the project root (see `config.json.sample`):
+
+```json
 {
     "server": {
         "port": 3001,
-        "maxListeners": 50
+        "maxListeners": 50,
+        "allowedHosts": ["mysite.com", "other.com"]
     },
     "cache": {
         "ttl": "2d",
@@ -20,27 +42,93 @@ You can setup the rendering behaviour on config.json:
             "waitForSelector": "meta[name=\"twitter:card\"]"
         },
         {
-            "url": "https://homeofmysite.com.br/",
+            "url": "https://mysite.com/",
             "waitForSelector": null
         }
     ]
 }
 ```
 
-Cache TTL uses [DurationJS](https://www.npmjs.com/package/duration-js) conventions for:
-- m: minute
-- h: hour
-- d: day
-- w: week
+All fields are optional — defaults are used for anything omitted.
 
-```page.url``` can be absolute pages urls but also accepts javascript Regular Expressions, they must start with ```ER:``` like ```'ER:.*mypattern.*'```. The lonely ```*```char on ```page.url``` means "the default selector".
+### server
 
-```waitForSelector``` is a valid CSS3 selector that refers to a page element that will signal the browser that your page is ready to be cached. The ```null``` value is used to indicate: "don't wait for anything".
+| Field | Default | Description |
+|---|---|---|
+| `port` | `3001` | TCP port the server listens on |
+| `maxListeners` | `50` | Max concurrent event listeners |
+| `allowedHosts` | _(none)_ | Whitelist of hostnames. When set, requests for any other host are rejected with 403. Omit or set to `[]` to allow all hosts. |
 
-```minContentSize``` is the miminum amount of bytes to consider the page sane and proper rendered to be cached.
+### cache
 
-You can test the server using:
-```curl 'http://127.0.0.1:3001/?url=https://%mysite.com.br/mypage'```
+| Field | Default | Description |
+|---|---|---|
+| `ttl` | `2d` | How long a cached file is considered fresh before re-rendering |
+| `directory` | `./cache` | Directory for on-disk HTML cache |
+| `minContentSize` | `1000` | Minimum response size in bytes to be eligible for caching. Smaller responses are served but not stored. |
 
-And if you don't want the test page to be cached add the string 'debug' anywhere on the url:
-```curl 'http://127.0.0.1:3001/?url=https://mysite.com%/mypage?debug'```.
+Cache TTL format: `<number><unit>` — e.g. `2d`, `12h`, `30m`, `1w`.
+Units: `ms`, `s`, `m` (minute), `h`, `d`, `w`.
+
+### pages
+
+Each entry maps a URL pattern to a CSS selector that signals the page is fully rendered.
+
+`page.url` accepts:
+- An exact URL: `"https://mysite.com/page"`
+- A Regular Expression prefixed with `ER:`: `"ER:.*mypattern.*"`
+- The wildcard `"*"` as a catch-all default selector
+
+`waitForSelector` is a CSS3 selector Puppeteer waits for before capturing the page.
+Set to `null` to capture immediately without waiting.
+
+## Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_LEVEL` | `info` | Pino log level: `trace`, `debug`, `info`, `warn`, `error` |
+| `CACHE_DIR` | value from `config.json` | Overrides `cache.directory`. Useful in Docker/Kubernetes to mount a volume. |
+
+## API
+
+### Render a page
+
+```
+GET /?url=<encoded-url>
+```
+
+```bash
+curl 'http://127.0.0.1:3001/?url=https://mysite.com/mypage'
+```
+
+To render without caching the result, add `debug` anywhere in the URL:
+
+```bash
+curl 'http://127.0.0.1:3001/?url=https://mysite.com/mypage?debug'
+```
+
+### Purge a cached page
+
+```
+DELETE /cache?url=<encoded-url>
+```
+
+Removes the on-disk cache file and the in-memory L1 entry for the given URL.
+
+```bash
+curl -X DELETE 'http://127.0.0.1:3001/cache?url=https://mysite.com/mypage'
+```
+
+### Health check
+
+```
+GET /health
+```
+
+Returns `{"status":"ok"}` with HTTP 200. Suitable for load balancer and container health probes.
+
+## Running tests
+
+```bash
+npm test
+```
