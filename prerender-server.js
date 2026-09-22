@@ -237,7 +237,11 @@ let config = {
 
 if (fs.existsSync('./config.json')) {
     const loadedConfig = JSON.parse(fs.readFileSync('./config.json'));
-    config = { ...config, ...loadedConfig };
+    config = {
+        cache:  { ...config.cache,  ...(loadedConfig.cache  || {}) },
+        server: { ...config.server, ...(loadedConfig.server || {}) },
+        pages:  loadedConfig.pages !== undefined ? loadedConfig.pages : config.pages,
+    };
 }
 
 if (process.argv.find((arg) => arg === '--help')) {
