@@ -4,6 +4,9 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const pino = require('pino');
+
+const log = pino({ level: process.env.LOG_LEVEL || 'info' });
 const DURATION_UNITS = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000, w: 604800000 };
 const parseDuration = (str) => {
     const match = String(str).match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d|w)?$/);
@@ -19,17 +22,6 @@ const fileOlderThan = async (filename, duration) => {
         return true
     }
     return new Date() - stats.mtime > parseDuration(duration)
-}
-
-/**
- * Console logger
- * @param {*} message
- */
-const logger = (message) => {
-
-    const time = new Date().toISOString();
-    console.log(`[${time}] ${message}`);
-
 }
 
 // Blocks private IPv4 ranges, loopback, link-local, and cloud metadata endpoints.
@@ -105,25 +97,25 @@ let getPage = async (url) => {
                 const pageSelector = config.pages.find((cfg) => {
                     if (cfg.url.substr(0, 3) === 'ER:') {
                         // is a regular expression)
-                        logger(`Checking ER ${cfg.url}`)
+                        log.debug(`Checking ER ${cfg.url}`)
                         const pattern = cfg.url.substr(3);
                         const flags = 'gmi';
                         const er = new RegExp(pattern, flags);
                         const result = er.exec(url);
                         const found = result !== null;
-                        logger(found ? 'ER Matched' : 'ER Failed');
+                        log.debug(found ? 'ER Matched' : 'ER Failed');
                         return found;
                     } 
                     return cfg.url === url
                 });
 
                 if (pageSelector) {
-                    logger(`Using Page Selector ${pageSelector.waitForSelector}`);
+                    log.debug(`Using Page Selector ${pageSelector.waitForSelector}`);
                     if (pageSelector.waitForSelector !== null) {
                         await page.waitForSelector(pageSelector.waitForSelector);
                     }
                 } else if (defaultSelector) {
-                    logger(`Using Default Selector ${defaultSelector.waitForSelector}`);
+                    log.debug(`Using Default Selector ${defaultSelector.waitForSelector}`);
                     await page.waitForSelector(defaultSelector.waitForSelector);
                 }
             }
@@ -131,13 +123,13 @@ let getPage = async (url) => {
             html = await page.content();
 
         } catch (e) {
-            console.log(e);
+            log.error({ err: e }, 'Page render error');
         } finally {
             await browser.close();
         }
 
     } catch (e) {
-        logger(e);
+        log.error({ err: e }, 'Browser render error');
         return 'Error'
     }
 
@@ -161,14 +153,14 @@ app.get('/{*path}', async (req, res) => {
     }
 
     if (!isSafeUrl(pageURL, config.server.allowedHosts || [])) {
-        logger(`Blocked unsafe URL: ${pageURL}`);
+        log.warn({ url: pageURL }, 'Blocked unsafe URL');
         res.status(403)
             .setHeader("Content-Type", "text/plain")
             .send("URL not allowed");
         return;
     }
 
-    logger(`Requested page: ${pageURL}`);
+    log.info({ url: pageURL }, 'Requested page');
 
     const fileHash = crypto
         .createHash('md5')
@@ -185,19 +177,19 @@ app.get('/{*path}', async (req, res) => {
     } catch { }
 
     if (cacheExists && !(await fileOlderThan(fileName, config.cache.ttl))) {
-        logger(`Reading from cache ${fileName}`);
+        log.debug({ file: fileName }, 'Reading from cache');
         html = await fs.promises.readFile(fileName, 'utf8');
     } else {
         html = await getPage(pageURL);
 
         if (html === 'Error') {
-            logger(`Render failed for ${pageURL}`);
+            log.error({ url: pageURL }, 'Render failed');
             res.status(502).setHeader("Content-Type", "text/plain").send("Render failed");
             return;
         }
 
         if (html.length >= config.cache.minContentSize && pageURL.indexOf('debug') === -1) {
-            logger(`Writing to cache ${fileName}`);
+            log.debug({ file: fileName }, 'Writing to cache');
             await fs.promises.writeFile(fileName, html);
         }
     }
@@ -209,11 +201,9 @@ app.get('/{*path}', async (req, res) => {
         .replace(/\n/g, "")
         .trim();
 
-    logger(`Sending page with ${html.length} bytes.`);
+    log.info({ bytes: html.length }, 'Sending page');
 
     res.status(200).setHeader("Content-Type", "text/html;charset=UTF-8").send(html);
-
-    logger('Page sent!');
 
 });
 
@@ -244,17 +234,14 @@ if (fs.existsSync('./config.json')) {
 
 if (process.argv.find((arg) => arg === '--help')) {
     console.log(`
-    Pre Render Server 
+    Pre Render Server
     =================
-    Cache TTL use:
-        https://www.npmjs.com/package/duration-js
-        m - minute
-        h - hour
-        d - day
-        w - week
+    Cache TTL format:
+        <number><unit>  e.g. 2d, 12h, 30m, 1w
+        Units: ms, s, m (minute), h, d, w
 
     `);
-    return 0; 
+    return 0;
 }
 
 app.setMaxListeners(config.server.maxListeners);
@@ -277,6 +264,6 @@ app.listen(config.server.port, () => {
         fs.mkdirSync(config.cache.directory);
     }
 
-    logger(`Pre Render Server is running at port ${config.server.port}`);
+    log.info(`Pre Render Server is running at port ${config.server.port}`);
 
 });
