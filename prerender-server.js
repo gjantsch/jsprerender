@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 const DURATION_UNITS = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000, w: 604800000 };
 const parseDuration = (str) => {
@@ -257,6 +258,12 @@ if (process.argv.find((arg) => arg === '--help')) {
 }
 
 app.setMaxListeners(config.server.maxListeners);
+
+// CACHE_DIR env var overrides config; resolve to absolute path so the process
+// working directory does not affect where cache files land.
+config.cache.directory = path.resolve(
+    process.env.CACHE_DIR || config.cache.directory
+);
 
 let defaultSelector = null;
 if (config.pages.length > 0) {
