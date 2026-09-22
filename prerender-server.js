@@ -12,10 +12,10 @@ const util = require('util')
  * @param {*} duration
  * @returns
  */
-const fileOlderThan = (filename, duration) => {
+const fileOlderThan = async (filename, duration) => {
     let stats
     try {
-        stats = fs.statSync(filename)
+        stats = await fs.promises.stat(filename)
     } catch (e) {
         return true
     }
@@ -181,10 +181,15 @@ app.get('*', async (req, res) => {
     const fileName = `${config.cache.directory}/${fileHash}`;
 
     let html = '';
+    let cacheExists = false;
+    try {
+        await fs.promises.access(fileName);
+        cacheExists = true;
+    } catch { }
 
-    if (fs.existsSync(fileName) && !fileOlderThan(fileName, config.cache.ttl)) {
+    if (cacheExists && !(await fileOlderThan(fileName, config.cache.ttl))) {
         logger(`Reading from cache ${fileName}`);
-        html = fs.readFileSync(fileName);
+        html = await fs.promises.readFile(fileName, 'utf8');
     } else {
         html = await getPage(pageURL);
 
@@ -196,7 +201,7 @@ app.get('*', async (req, res) => {
 
         if (html.length >= config.cache.minContentSize && pageURL.indexOf('debug') === -1) {
             logger(`Writing to cache ${fileName}`);
-            fs.writeFileSync(fileName, html);
+            await fs.promises.writeFile(fileName, html);
         }
     }
 
