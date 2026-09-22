@@ -100,7 +100,7 @@ let getPage = async (url) => {
                 url = url.replace('debug', '');
             }
 
-            await page.goto(url);
+            await page.goto(url, { waitUntil: 'networkidle0' });
 
             if (config.pages.length > 0) {
 
