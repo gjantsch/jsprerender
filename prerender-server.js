@@ -4,7 +4,6 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const crypto = require('crypto');
 const Duration = require('duration-js')
-const util = require('util')
 
 /**
  * Check file age
@@ -19,7 +18,7 @@ const fileOlderThan = async (filename, duration) => {
     } catch (e) {
         return true
     }
-    const fileDate = new Date(util.inspect(stats.mtime))
+    const fileDate = stats.mtime
     const parsed = Duration.parse(duration)
     return new Date() - fileDate > parsed
 }
