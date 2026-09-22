@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const pino = require('pino');
+const { LRUCache } = require('lru-cache');
 
 const log = pino({ level: process.env.LOG_LEVEL || 'info' });
 const DURATION_UNITS = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000, w: 604800000 };
@@ -153,6 +154,7 @@ app.delete('/cache', async (req, res) => {
     const fileName = `${config.cache.directory}/${fileHash}`;
     try {
         await fs.promises.unlink(fileName);
+        l1Cache.delete(fileHash);
         log.info({ url: pageURL }, 'Cache entry purged');
         res.status(200).json({ purged: true, url: pageURL });
     } catch (e) {
@@ -195,27 +197,36 @@ app.get('/{*path}', async (req, res) => {
     const fileName = `${config.cache.directory}/${fileHash}`;
 
     let html = '';
-    let cacheExists = false;
-    try {
-        await fs.promises.access(fileName);
-        cacheExists = true;
-    } catch { }
 
-    if (cacheExists && !(await fileOlderThan(fileName, config.cache.ttl))) {
-        log.debug({ file: fileName }, 'Reading from cache');
-        html = await fs.promises.readFile(fileName, 'utf8');
+    const l1Hit = l1Cache.get(fileHash);
+    if (l1Hit) {
+        log.debug({ url: pageURL }, 'L1 cache hit');
+        html = l1Hit;
     } else {
-        html = await getPage(pageURL);
+        let cacheExists = false;
+        try {
+            await fs.promises.access(fileName);
+            cacheExists = true;
+        } catch { }
 
-        if (html === 'Error') {
-            log.error({ url: pageURL }, 'Render failed');
-            res.status(502).setHeader("Content-Type", "text/plain").send("Render failed");
-            return;
-        }
+        if (cacheExists && !(await fileOlderThan(fileName, config.cache.ttl))) {
+            log.debug({ file: fileName }, 'Reading from disk cache');
+            html = await fs.promises.readFile(fileName, 'utf8');
+            l1Cache.set(fileHash, html);
+        } else {
+            html = await getPage(pageURL);
 
-        if (html.length >= config.cache.minContentSize && pageURL.indexOf('debug') === -1) {
-            log.debug({ file: fileName }, 'Writing to cache');
-            await fs.promises.writeFile(fileName, html);
+            if (html === 'Error') {
+                log.error({ url: pageURL }, 'Render failed');
+                res.status(502).setHeader("Content-Type", "text/plain").send("Render failed");
+                return;
+            }
+
+            if (html.length >= config.cache.minContentSize && pageURL.indexOf('debug') === -1) {
+                log.debug({ file: fileName }, 'Writing to cache');
+                await fs.promises.writeFile(fileName, html);
+                l1Cache.set(fileHash, html);
+            }
         }
     }
 
@@ -270,6 +281,11 @@ if (process.argv.find((arg) => arg === '--help')) {
 }
 
 app.setMaxListeners(config.server.maxListeners);
+
+const l1Cache = new LRUCache({
+    max: 500,
+    ttl: parseDuration(config.cache.ttl),
+});
 
 // CACHE_DIR env var overrides config; resolve to absolute path so the process
 // working directory does not affect where cache files land.
