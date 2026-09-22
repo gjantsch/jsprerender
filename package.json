@@ -1,4 +1,13 @@
 {
+  "name": "jsprerender",
+  "version": "1.0.0",
+  "description": "Headless-Chrome prerender server — renders JS SPAs for crawlers and bots",
+  "main": "prerender-server.js",
+  "scripts": {
+    "start": "node prerender-server.js",
+    "test": "node --test test/"
+  },
+  "license": "GPL-3.0",
   "dependencies": {
     "duration-js": "^4.0.0",
     "express": "^4.17.1",
