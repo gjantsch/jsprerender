@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node prerender-server.js",
-    "test": "node --test test/"
+    "test": "node --test 'test/*.test.mjs'"
   },
   "license": "GPL-3.0",
   "dependencies": {

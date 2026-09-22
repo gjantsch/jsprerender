@@ -6,6 +6,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY prerender-server.js ./
+COPY src/ ./src/
 COPY config.json.sample ./
 
 ENV NODE_ENV=production \
