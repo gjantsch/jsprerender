@@ -3,14 +3,13 @@ const app = express();
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const crypto = require('crypto');
-const Duration = require('duration-js')
+const DURATION_UNITS = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000, w: 604800000 };
+const parseDuration = (str) => {
+    const match = String(str).match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d|w)?$/);
+    if (!match) throw new Error(`Invalid duration: ${str}`);
+    return parseFloat(match[1]) * (DURATION_UNITS[match[2] || 'ms'] || 1);
+};
 
-/**
- * Check file age
- * @param {*} filename
- * @param {*} duration
- * @returns
- */
 const fileOlderThan = async (filename, duration) => {
     let stats
     try {
@@ -18,9 +17,7 @@ const fileOlderThan = async (filename, duration) => {
     } catch (e) {
         return true
     }
-    const fileDate = stats.mtime
-    const parsed = Duration.parse(duration)
-    return new Date() - fileDate > parsed
+    return new Date() - stats.mtime > parseDuration(duration)
 }
 
 /**
@@ -150,7 +147,7 @@ let getPage = async (url) => {
 /**
  * main loop
  */
-app.get('*', async (req, res) => {
+app.get('/{*path}', async (req, res) => {
     const pageURL = req.query.url;
 
     if (pageURL == undefined || !pageURL || pageURL.indexOf('http') == -1) {
