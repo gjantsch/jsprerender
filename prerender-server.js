@@ -144,6 +144,27 @@ app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok' });
 });
 
+app.delete('/cache', async (req, res) => {
+    const pageURL = req.query.url;
+    if (!pageURL) {
+        return res.status(400).setHeader("Content-Type", "text/plain").send("Missing url parameter");
+    }
+    const fileHash = crypto.createHash('md5').update(pageURL).digest('hex');
+    const fileName = `${config.cache.directory}/${fileHash}`;
+    try {
+        await fs.promises.unlink(fileName);
+        log.info({ url: pageURL }, 'Cache entry purged');
+        res.status(200).json({ purged: true, url: pageURL });
+    } catch (e) {
+        if (e.code === 'ENOENT') {
+            res.status(404).json({ purged: false, url: pageURL, reason: 'not cached' });
+        } else {
+            log.error({ err: e, url: pageURL }, 'Cache purge failed');
+            res.status(500).setHeader("Content-Type", "text/plain").send("Purge failed");
+        }
+    }
+});
+
 app.get('/{*path}', async (req, res) => {
     const pageURL = req.query.url;
 
