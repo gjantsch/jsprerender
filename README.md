@@ -1,4 +1,4 @@
-[![CI](https://github.com/gjantsch/jsprerender/actions/workflows/ci.yml/badge.svg?branch=main&event=branch_protection_rule)](https://github.com/gjantsch/jsprerender/actions/workflows/ci.yml)
+[![CI](https://github.com/gjantsch/jsprerender/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gjantsch/jsprerender/actions/workflows/ci.yml)
 
 # jsprerender
 A prerender server for ReactJS, VueJS, Angular pages.
